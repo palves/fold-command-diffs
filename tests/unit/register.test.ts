@@ -9,9 +9,14 @@ const HINT = 'ctrl+o shows the diff'
 
 type Props = { tool: string; output: unknown; isErrored?: boolean; isExpanded?: boolean }
 
-// Stand in for the stock drawing beneath the mod; record the ToolResult props that reach it
-function stand(on: any) {
+// Stand in for the stock drawing beneath the mod, and for the session's directory (`cwd`, or a
+// failing call when null); record the ToolResult props that reach the drawing
+function stand(on: any, cwd: string | null = '/w') {
   const seen: any[] = []
+  on('session.cwd', async () => {
+    if (cwd === null) throw new Error('no cwd')
+    return { value: cwd }
+  })
   on('ui.render', { component: 'ToolUse' }, async ($$: any, e: any) => {
     const { Text } = $$.ui.resolve(e)
     return Text({ children: ['ROW'] })
@@ -89,7 +94,7 @@ for (const surface of SURFACES) {
         const { tree, props } = await draw($, surface, command, ONE)
         if (muted) {
           const name = command.includes('quilt') ? 'quilt' : 'stg'
-          expect(rows(surface, tree, name)).toEqual(['updated · /w/a.txt · +1 −1', HINT])
+          expect(rows(surface, tree, name)).toEqual(['Updated a.txt (+1 -1)', HINT])
           // the stock drawing gets the command's own output, without the diff
           const { bashEditDiff, ...rest } = (props as any).output
           expect(seen[0].output).toEqual(rest)
@@ -106,12 +111,12 @@ for (const surface of SURFACES) {
     test(`${surface}: a listed wrapper run by path is folded under its own name`, WRAP, async ($, on) => {
       stand(on)
       const { tree } = await draw($, surface, '~/bin/stg-wrap goto p2', ONE)
-      expect(rows(surface, tree, 'stg-wrap')).toEqual(['updated · /w/a.txt · +1 −1', HINT])
+      expect(rows(surface, tree, 'stg-wrap')).toEqual(['Updated a.txt (+1 -1)', HINT])
     })
     test(`${surface}: stg still folded when listed with others`, WRAP, async ($, on) => {
       stand(on)
       const { tree } = await draw($, surface, 'stg pop', ONE)
-      expect(rows(surface, tree)).toEqual(['updated · /w/a.txt · +1 −1', HINT])
+      expect(rows(surface, tree)).toEqual(['Updated a.txt (+1 -1)', HINT])
     })
     test(`${surface}: the first matching part names the line`, WRAP, async ($, on) => {
       stand(on)
@@ -168,7 +173,7 @@ for (const surface of SURFACES) {
         moreFiles: 0,
       }
       const { tree } = await draw($, surface, 'stg pop', bash(diff))
-      expect(rows(surface, tree)).toEqual(['created · /w/n.txt · 2 lines', 'deleted · /w/o.txt · 1 lines', 'updated · /w/a\\x1b[2Jb · +0 −0', HINT])
+      expect(rows(surface, tree)).toEqual(['Created n.txt (+2 -0)', 'Deleted o.txt (+0 -1)', 'Updated a\\x1b[2Jb (+0 -0)', HINT])
     })
 
     test(`${surface}: more than ten files collapse into one line`, async ($, on) => {
@@ -177,7 +182,7 @@ for (const surface of SURFACES) {
       const { tree } = await draw($, surface, 'stg goto p9', bash({ files, moreFiles: 4 }))
       const got = rows(surface, tree)!
       expect(got).toHaveLength(12)
-      expect(got.slice(0, 10)).toEqual(files.slice(0, 10).map(f => `updated · ${f.filePath} · +1 −0`))
+      expect(got.slice(0, 10)).toEqual(files.slice(0, 10).map(f => `Updated ${f.filePath.slice('/w/'.length)} (+1 -0)`))
       expect(got.slice(10)).toEqual(['… 9 more files', HINT])
     })
 
@@ -186,6 +191,33 @@ for (const surface of SURFACES) {
       const files = Array.from({ length: 10 }, (_, i) => ({ filePath: `/w/f${i}`, hunks: [] }))
       const { tree } = await draw($, surface, 'stg push', bash({ files, moreFiles: 0 }))
       expect(rows(surface, tree)).toHaveLength(11)
+    })
+  })
+
+  describe(`${surface}: paths relative to the session's directory`, () => {
+    const diff = {
+      files: [
+        { filePath: '/w/src/main.c', hunks: [hunk('+x')] },
+        { filePath: '/elsewhere/b.txt', hunks: [hunk('+x')] },
+        { filePath: '/wx/c.txt', hunks: [hunk('+x')] },
+      ],
+      moreFiles: 1,
+      changedFiles: ['/w/src/main.c', '/w/big.bin'],
+    }
+    test(`${surface}: under it relative, outside it and a sibling sharing the prefix absolute`, async ($, on) => {
+      stand(on)
+      const { tree } = await draw($, surface, 'stg pop', bash(diff))
+      expect(rows(surface, tree)).toEqual(['Updated src/main.c (+1 -0)', 'Updated /elsewhere/b.txt (+1 -0)', 'Updated /wx/c.txt (+1 -0)', 'Changed big.bin', HINT])
+    })
+    test(`${surface}: a directory given with a trailing slash`, async ($, on) => {
+      stand(on, '/w/')
+      const { tree } = await draw($, surface, 'stg pop', ONE)
+      expect(rows(surface, tree)).toEqual(['Updated a.txt (+1 -1)', HINT])
+    })
+    test(`${surface}: no directory to be had, paths stay absolute`, async ($, on) => {
+      stand(on, null)
+      const { tree } = await draw($, surface, 'stg pop', ONE)
+      expect(rows(surface, tree)).toEqual(['Updated /w/a.txt (+1 -1)', HINT])
     })
   })
 }

@@ -78,14 +78,16 @@ function safe(value) {
 
 // One line per file a Bash command changed, from the bashEditDiff the engine keeps
 // for drawing (an internal field: when it is missing or empty, Bash keeps the stock drawing)
-function bashSummaries(diff) {
+// The wording is the stock drawing's ("Updated a.txt (+1 -1)"), and a path is shown relative to
+// `cwd`, the directory the command started in, as the stock drawing shows it.
+function bashSummaries(diff, cwd) {
   const files = Array.isArray(diff?.files) ? diff.files.filter(f => f && typeof f === 'object') : []
   const rows = files.map(f => {
-    const path = safe(f.filePath)
+    const path = safe(relative(f.filePath, cwd))
     const { add, del } = countLines(f.hunks)
-    if (f.created === true) return `created · ${path} · ${add} lines`
-    if (f.deleted === true) return `deleted · ${path} · ${del} lines`
-    return `updated · ${path} · +${add} −${del}`
+    if (f.created === true) return `Created ${path} (+${add} -0)`
+    if (f.deleted === true) return `Deleted ${path} (+0 -${del})`
+    return `Updated ${path} (+${add} -${del})`
   })
   // Files changed with no diff to show (too large, binary, mode only): named from changedFiles
   let more = Number.isInteger(diff?.moreFiles) && diff.moreFiles > 0 ? diff.moreFiles : 0
@@ -94,11 +96,20 @@ function bashSummaries(diff) {
   for (const path of new Set(named)) {
     if (more === 0) break
     if (typeof path !== 'string' || shown.has(path)) continue
-    rows.push(`changed · ${safe(path)}`)
+    rows.push(`Changed ${safe(relative(path, cwd))}`)
     more--
   }
   if (more) rows.push(`… ${more} more files`)
   return rows
+}
+
+// `path` relative to the directory `cwd`, or `path` itself when it is not under it.  Claude Code
+// diffs only the files under the directory a command starts in, so the fallback is for a
+// redrawn row whose session has since moved (a resumed session started elsewhere).
+function relative(path, cwd) {
+  if (typeof path !== 'string' || typeof cwd !== 'string' || cwd === '') return path
+  const dir = cwd.endsWith('/') ? cwd : cwd + '/'
+  return path.startsWith(dir) ? path.slice(dir.length) : path
 }
 
 const GUTTER = '  ⎿  '
@@ -121,7 +132,8 @@ function load($, again) {
 }
 // What each row showed when first drawn, so a switch changes only rows drawn after it
 const shown = new Map()
-// tool_use_id of each Bash call that runs a matched command, to the command's name
+// tool_use_id of each Bash call that runs a matched command, to `{ name, cwd }`: the command's
+// name and the session's directory when the call started
 const matched = new Map()
 
 const NAME = 'fold-command-diffs'
@@ -177,12 +189,17 @@ export function register(on, options) {
     return { text: `unknown '${safe(e.args.trim())}', use /${NAME} on|off` }
   })
 
-  // Record the Bash calls that run a matched command; the row itself draws as stock
+  // Record the Bash calls that run a matched command, with the session's directory at the row's
+  // first drawing, which for a live call is when it starts; the row itself draws as stock
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     const { tool_use_id: id, tool, input } = e.props ?? {}
-    if (tool === 'Bash' && typeof id === 'string') {
+    if (tool === 'Bash' && typeof id === 'string' && !matched.has(id)) {
       const name = matchCommand(input?.command, names)
-      if (name) matched.set(id, name)
+      if (name) {
+        let cwd
+        try { cwd = await $.session.cwd() } catch { cwd = undefined }
+        matched.set(id, { name, cwd })
+      }
     }
     return next(e)
   })
@@ -192,7 +209,8 @@ export function register(on, options) {
     // Errors, ctrl+o, and every call not recorded as matched keep the stock drawing
     if (isErrored || isExpanded || tool !== 'Bash' || !matched.has(id)) return next(e)
     if (!output || typeof output !== 'object') return next(e)
-    const bash = bashSummaries(output.bashEditDiff)
+    const call = matched.get(id)
+    const bash = bashSummaries(output.bashEditDiff, call.cwd)
     if (!bash.length) return next(e)
     let muted = shown.get(id)
     if (muted === undefined) {
@@ -204,7 +222,7 @@ export function register(on, options) {
     const { Box, Text } = $.ui.resolve(e)
     // In the terminal a result block opens with the same gutter as the stock one, then the
     // matched command's name
-    const lead = (e.surface === 'terminal' ? GUTTER : '') + safe(matched.get(id)) + ': '
+    const lead = (e.surface === 'terminal' ? GUTTER : '') + safe(call.name) + ': '
     const line = text => Text({ dimColor: true, wrap: 'truncate-middle', children: [lead + text] })
     // The stock drawing of the command's output without the diff, then one line per file
     const { bashEditDiff, ...rest } = output

@@ -11,13 +11,14 @@ ctrl+o.  It knows nothing about other tools that do the same, so every patch an
 `stg goto` or a `quilt push -a` moves shows as a giant red or green diff.
 
 With the mod, such a call keeps its own output and lists the files it changed,
-one grey line each, the diff itself still under ctrl+o:
+one grey line each, in Claude Code's own words and with its paths, the diff
+itself still under ctrl+o:
 
 ```
 ● Bash(stg goto p3)
   ⎿  > p3
-  ⎿  stg: updated · /w/src/main.c · +12 −3
-  ⎿  stg: deleted · /w/src/old.c · 40 lines
+  ⎿  stg: Updated src/main.c (+12 -3)
+  ⎿  stg: Deleted src/old.c (+0 -40)
   ⎿  stg: ctrl+o shows the diff
 ```
 
