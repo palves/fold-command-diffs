@@ -1,0 +1,19 @@
+{
+  "name": "fold-command-diffs",
+  "version": "0.1.0",
+  "description": "Folds the file diff Claude Code draws under a Bash call running one of the commands you list (stg and quilt by default) into one line per file, as it already does for git checkout, the diff still under ctrl+o",
+  "author": {
+    "name": "Pedro Alves"
+  },
+  "homepage": "https://github.com/palves/fold-command-diffs",
+  "repository": "https://github.com/palves/fold-command-diffs",
+  "license": "MIT",
+  "userConfig": {
+    "commands": {
+      "type": "string",
+      "title": "Commands whose diff is folded",
+      "description": "Names of the commands whose file diff is folded, separated by spaces or commas, matched against the first word of each command in a Bash line, or its last path component (stg-wrap matches ~/bin/stg-wrap)",
+      "default": "stg quilt"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+tests/results/
+# Written by Claude Code when it loads the mod: the API types and the tsconfig
+# that the top-level tsconfig.json extends
+plugin/.claude-plugin/types/
+plugin/tsconfig.json

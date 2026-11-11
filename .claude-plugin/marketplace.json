@@ -1,0 +1,13 @@
+{
+  "name": "fold-command-diffs",
+  "description": "fold-command-diffs: a Claude Code mod that folds the file diff under the Bash commands you list, stg and quilt by default",
+  "owner": {
+    "name": "Pedro Alves"
+  },
+  "plugins": [
+    {
+      "name": "fold-command-diffs",
+      "source": "./plugin"
+    }
+  ]
+}
