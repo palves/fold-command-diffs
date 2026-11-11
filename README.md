@@ -7,6 +7,20 @@ push and pop move the working tree.  What it shows, how to pick the commands and
 how to switch it off are in [plugin/README.md](plugin/README.md), the file
 installed with the mod.
 
+## What it looks like
+
+An `stg goto` that pops three patches, without the mod.  The diff of every file
+the patches touched is drawn under the call, which for a real series can run to
+hundreds of lines:
+
+![stg goto p1 without the mod: the output, then each deleted file drawn in full
+as a red diff](docs/before.png)
+
+The same call with the mod, the diff still a ctrl+o away:
+
+![stg goto p1 with the mod: the output, then one line per deleted file and a
+line saying ctrl+o shows the diff](docs/after.png)
+
 ## Install
 
 ```
