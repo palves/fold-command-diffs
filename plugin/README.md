@@ -1,8 +1,10 @@
 # fold-command-diffs
 
 A Claude Code mod that folds the file diff Claude Code draws under a Bash
-command running one of the commands you list, by default `stg` and `quilt`,
-whose `stg goto` or `quilt pop` move the working tree.
+command running one of the commands you list, by default `stg` and `quilt`, from
+[StGit](https://stacked-git.github.io/) (Stacked Git) and
+[quilt](https://savannah.nongnu.org/projects/quilt), whose `stg goto` or `quilt
+pop` move the working tree.
 
 Claude Code draws, under a Bash call, the diff of every file that changed while
 it ran.  For git commands that move the working tree, such as `git checkout` and

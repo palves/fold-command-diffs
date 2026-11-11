@@ -1,7 +1,7 @@
 {
   "name": "fold-command-diffs",
   "version": "0.1.0",
-  "description": "Folds the file diff Claude Code draws under a Bash call running one of the commands you list (stg and quilt by default) into one line per file, as it already does for git checkout, the diff still under ctrl+o",
+  "description": "Folds the file diff Claude Code draws under a Bash call running one of the commands you list (StGit's stg and quilt by default) into one line per file, as it already does for git checkout, the diff still under ctrl+o",
   "author": {
     "name": "Pedro Alves"
   },

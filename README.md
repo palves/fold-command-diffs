@@ -2,10 +2,12 @@
 
 A Claude Code mod that folds the file diff Claude Code draws under a Bash
 command running one of the commands you list, as Claude Code already does for
-`git checkout`.  The default list, `stg quilt`, is the patch-stack tools whose
-push and pop move the working tree.  What it shows, how to pick the commands and
-how to switch it off are in [plugin/README.md](plugin/README.md), the file
-installed with the mod.
+`git checkout`.  The default list, `stg quilt`, covers
+[StGit](https://stacked-git.github.io/) (Stacked Git) and
+[quilt](https://savannah.nongnu.org/projects/quilt), the patch-stack tools whose
+push, pop and goto move the working tree.  What it shows, how to pick the
+commands and how to switch it off are in [plugin/README.md](plugin/README.md),
+the file installed with the mod.
 
 ## What it looks like
 
